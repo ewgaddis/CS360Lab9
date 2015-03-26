@@ -44,16 +44,6 @@
 
 		<a href="#/home">Home</a>
 
-		<div ng-repeat="comment in post.comments | orderBy: '-upvotes'">
-			<span class="glyphicon glyphicon-thumbs-up" ng-click="incrementUpvotes(comment)"></span>
-
-			{{comment.upvotes}}
-
-			<span style="font-size:20px; margin-left:10px;">
-				{{comment.body}}
-			</span>
-		</div>
-
 		<form ng-submit="addComment()" style="margin-top:30px;">
 			<h3>Add a new comment</h3>
 
@@ -63,6 +53,16 @@
 
 			<button type="submit" class="btn btn-primary">Post</button>
 		</form>
+
+		<div ng-repeat="comment in post.comments | orderBy: '-upvotes'">
+			<span class="glyphicon glyphicon-thumbs-up" ng-click="incrementUpvotes(comment)"></span>
+
+			{{comment.upvotes}}
+
+			<span style="font-size:20px; margin-left:10px;">
+				{{comment.body}}
+			</span>
+		</div>	
 	</script>
 </body>
 

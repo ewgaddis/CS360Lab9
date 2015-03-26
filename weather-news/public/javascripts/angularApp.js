@@ -1,11 +1,50 @@
 angular.module('weatherNews', ['ui.router'])
-.factory('postFactory', [function() {
-	var o = {
-		posts: []
-	};
+.factory('postFactory', [
+	'$http',
+	function($http) {
+		var o = {
+			posts: [],
+			post: {}
+		};
 
-	return o;
-}])
+		o.getAll = function() {
+			return $http.get('/posts').success(function(data) {
+				angular.copy(data, o.posts);
+			});
+		};
+
+		o.create = function(post) {
+			return $http.post('/posts', post).success(function(data) {
+				o.posts.push(data);
+			});
+		};
+
+		o.upvote = function(post) {
+			return $http.put('/posts/' + post._id + '/upvote').success(function(data) {
+				post.upvotes += 1;
+			});
+		};
+
+		o.getPost = function(id) {
+			return $http.get('/posts/' + id).success(function(data) {
+				angular.copy(data, o.post);
+			});
+		};
+
+		o.addNewComment = function(id, comment) {
+			return $http.post('/posts/' + id + '/comments', comment);
+		};
+
+		o.upvoteComment = function(post, comment) {
+			return $http.put('/posts/' + post._id + '/comments/' + comment._id + '/upvote')
+			.success(function(data) {
+				comment.upvotes += 1;
+			});
+		};
+
+		return o;
+	}
+])
 .config([
 	'$stateProvider',
 	'$urlRouterProvider',
@@ -29,40 +68,63 @@ angular.module('weatherNews', ['ui.router'])
 	'$scope',
 	'postFactory',
 	function($scope, postFactory) {
+		postFactory.getAll();
+
 		$scope.posts = postFactory.posts;
 
 		$scope.addPost = function() {
-			$scope.posts.push({title:$scope.formContent, upvotes:0, comments: []});
+			if($scope.formContent === '') {
+				return;
+			}
+
+			postFactory.create({
+				title: $scope.formContent,
+				upvotes: 0,
+				comments: []
+			});
+
 			$scope.formContent = '';
 		};
 
 		$scope.incrementUpvotes = function(post) {
-			post.upvotes += 1;
+			postFactory.upvote(post);
 		};
 	}
 ])
 .controller('PostCtrl', [
 	'$scope',
 	'$stateParams',
+	'$state',
 	'postFactory',
-	function($scope, $stateParams, postFactory) {
-		$scope.post = postFactory.posts[$stateParams.id];
+	function($scope, $stateParams, $state, postFactory) {
+		var mypost = postFactory.posts[$stateParams.id];
+
+		if(!mypost) {
+			$state.go('home');
+			return;
+		}
+
+		postFactory.getPost(mypost._id);
+		$scope.post = postFactory.post;
 
 		$scope.addComment = function() {
 			if($scope.body === '') {
 				return;
 			}
 
-			$scope.post.comments.push({
+			postFactory.addNewComment(postFactory.post._id, {
 				body: $scope.body,
 				upvotes: 0
+			}).success(function(comment) {
+				mypost.comments.push(comment);
+				postFactory.post.comments.push(comment);
 			});
 
 			$scope.body = '';
 		};
 
 		$scope.incrementUpvotes = function(comment) {
-			comment.upvotes += 1;
+			postFactory.upvoteComment(postFactory.post, comment);
 		};
 	}
 ]);
